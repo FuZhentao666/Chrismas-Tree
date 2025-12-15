@@ -1,14 +1,15 @@
 import React from 'react';
 import { AppMode, GestureType } from '../types';
-import { Camera, Upload, Hand, Grip, Grab } from 'lucide-react';
+import { Camera, Upload, Hand, Grip, Grab, Loader2 } from 'lucide-react';
 
 interface UIOverlayProps {
   mode: AppMode;
   currentGesture: GestureType;
   onPhotoUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isProcessing?: boolean;
 }
 
-const UIOverlay: React.FC<UIOverlayProps> = ({ mode, currentGesture, onPhotoUpload }) => {
+const UIOverlay: React.FC<UIOverlayProps> = ({ mode, currentGesture, onPhotoUpload, isProcessing = false }) => {
   const getModeText = () => {
     switch (mode) {
       case AppMode.TREE: return "TREE MODE";
@@ -42,13 +43,14 @@ const UIOverlay: React.FC<UIOverlayProps> = ({ mode, currentGesture, onPhotoUplo
         
         <div className="flex flex-col items-end gap-2">
             <div className="pointer-events-auto">
-                <label className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full cursor-pointer transition backdrop-blur-md border border-white/10">
-                    <Upload size={16} />
-                    <span className="text-xs font-bold">ADD MEMORY</span>
+                <label className={`flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full cursor-pointer transition backdrop-blur-md border border-white/10 ${isProcessing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {isProcessing ? <Loader2 size={16} className="animate-spin"/> : <Upload size={16} />}
+                    <span className="text-xs font-bold">{isProcessing ? "OPTIMIZING..." : "ADD MEMORY"}</span>
                     <input 
                         type="file" 
                         accept="image/*" 
                         multiple 
+                        disabled={isProcessing}
                         className="hidden" 
                         onChange={onPhotoUpload}
                     />

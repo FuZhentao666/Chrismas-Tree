@@ -3,7 +3,20 @@ import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { Environment, OrbitControls, Stars } from '@react-three/drei';
 import TreeParticles from './TreeParticles';
+import TextParticles from './TextParticles';
 import { AppMode } from '../types';
+
+// Fix for missing R3F intrinsic elements types
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      color: any;
+      ambientLight: any;
+      pointLight: any;
+      spotLight: any;
+    }
+  }
+}
 
 interface SceneProps {
   mode: AppMode;
@@ -38,9 +51,10 @@ const Scene: React.FC<SceneProps> = ({ mode, userPhotos, handPosition }) => {
         />
 
         <TreeParticles mode={mode} userPhotos={userPhotos} handPosition={handPosition} />
+        <TextParticles mode={mode} />
 
         {/* Post Processing for Cinematic Feel */}
-        <EffectComposer disableNormalPass>
+        <EffectComposer enableNormalPass={false}>
           <Bloom 
             luminanceThreshold={0.4} 
             mipmapBlur 

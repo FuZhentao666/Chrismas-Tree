@@ -3,12 +3,14 @@ import Scene from './components/Scene';
 import GestureHandler from './components/GestureHandler';
 import UIOverlay from './components/UIOverlay';
 import { AppMode, GestureType } from './types';
+import { processImage } from './services/imageUtils';
 
 const App: React.FC = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.TREE);
   const [currentGesture, setCurrentGesture] = useState<GestureType>(GestureType.NONE);
   const [userPhotos, setUserPhotos] = useState<string[]>([]);
   const [handPosition, setHandPosition] = useState({ x: 0.5, y: 0.5 });
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Handle Gesture Changes
   const handleGestureChange = useCallback((gesture: GestureType, handPos?: { x: number, y: number }) => {
@@ -35,9 +37,7 @@ const App: React.FC = () => {
                 return AppMode.PHOTO_ZOOM;
             }
         }
-        // If gesture released (NONE or OPEN) while in Zoom, do we stay?
-        // Let's say we stay in Zoom until Fist (Tree) or Open Palm (Exploded) is explicitly made again.
-        // Actually, let's make Open Palm return to Exploded from Zoom
+        // Return to exploded from zoom
         if (gesture === GestureType.OPEN_PALM && prevMode === AppMode.PHOTO_ZOOM) {
             return AppMode.EXPLODED;
         }
@@ -46,11 +46,27 @@ const App: React.FC = () => {
     });
   }, []);
 
-  // Handle File Upload
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle File Upload with optimization
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-        const newPhotos = Array.from(e.target.files).map((file: File) => URL.createObjectURL(file));
-        setUserPhotos(prev => [...prev, ...newPhotos]);
+        setIsProcessing(true);
+        const files = Array.from(e.target.files);
+        
+        try {
+            // Process images in parallel
+            const processedImages = await Promise.all(
+                files.map(file => processImage(file))
+            );
+            
+            // Filter out any failed loads (empty strings)
+            const validImages = processedImages.filter(img => img.length > 0);
+            
+            setUserPhotos(prev => [...prev, ...validImages]);
+        } catch (error) {
+            console.error("Error processing photos", error);
+        } finally {
+            setIsProcessing(false);
+        }
     }
   };
 
@@ -63,7 +79,8 @@ const App: React.FC = () => {
       <UIOverlay 
         mode={mode} 
         currentGesture={currentGesture} 
-        onPhotoUpload={handlePhotoUpload} 
+        onPhotoUpload={handlePhotoUpload}
+        isProcessing={isProcessing}
       />
       
       {/* Invisible Gesture Handler (contains Video) */}
